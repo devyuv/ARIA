@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Personal AI Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scanline" aria-hidden="true"></div>
+
+<div class="shell">
+
+  <!-- Left rail -->
+  <nav class="rail">
+    <div class="rail-brand">
+      <div class="core" id="core">
+        <canvas id="coreCanvas" width="72" height="72"></canvas>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">ARIA</span>
+        <span class="brand-sub">console</span>
+      </div>
+    </div>
+
+    <div class="rail-modes" role="tablist" aria-label="Modes">
+      <button class="mode-btn active" data-mode="chat" role="tab" aria-selected="true">
+        <span class="mode-index">01</span>
+        <span class="mode-label">Chat</span>
+      </button>
+      <button class="mode-btn" data-mode="image" role="tab" aria-selected="false">
+        <span class="mode-index">02</span>
+        <span class="mode-label">Imaging</span>
+      </button>
+      <button class="mode-btn" data-mode="summary" role="tab" aria-selected="false">
+        <span class="mode-index">03</span>
+        <span class="mode-label">Digest</span>
+      </button>
+      <button class="mode-btn" data-mode="research" role="tab" aria-selected="false">
+        <span class="mode-index">04</span>
+        <span class="mode-label">Research</span>
+      </button>
+    </div>
+
+    <button class="rail-settings" id="openSettings">
+      <span class="mode-index">◎</span>
+      <span class="mode-label">Settings</span>
+    </button>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <header class="topbar">
+      <div class="status-block">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">STANDBY</span>
+      </div>
+      <div class="topbar-title" id="modeTitle">Chat</div>
+      <div class="clock" id="clock">00:00:00</div>
+    </header>
+
+    <!-- CHAT -->
+    <section class="panel active" id="panel-chat" data-panel="chat">
+      <div class="log" id="chatLog">
+        <div class="msg system">
+          <div class="msg-role">ARIA</div>
+          <div class="msg-body">Systems online. Add your Anthropic API key in Settings to begin, then talk to me about anything.</div>
+        </div>
+      </div>
+      <form class="composer" id="chatForm">
+        <textarea id="chatInput" placeholder="Talk to ARIA…" rows="1" autocomplete="off"></textarea>
+        <button type="submit" class="send-btn">Send</button>
+      </form>
+    </section>
+
+    <!-- IMAGE -->
+    <section class="panel" id="panel-image" data-panel="image">
+      <div class="pane-intro">
+        <h2>Imaging</h2>
+        <p>Describe an image. Generation runs through a free open image endpoint — no key required.</p>
+      </div>
+      <form class="composer" id="imageForm">
+        <textarea id="imageInput" placeholder="A chrome falcon over a neon city, cinematic…" rows="1"></textarea>
+        <button type="submit" class="send-btn">Render</button>
+      </form>
+      <div class="image-grid" id="imageGrid"></div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section class="panel" id="panel-summary" data-panel="summary">
+      <div class="pane-intro">
+        <h2>Digest</h2>
+        <p>Paste text, an article, notes, or a transcript. ARIA returns a structured summary.</p>
+      </div>
+      <textarea id="summaryInput" class="big-input" placeholder="Paste text to summarize…"></textarea>
+      <div class="row-actions">
+        <select id="summaryLength">
+          <option value="brief">Brief — key points only</option>
+          <option value="standard" selected>Standard — structured summary</option>
+          <option value="deep">Deep — detailed breakdown</option>
+        </select>
+        <button id="summaryBtn" class="send-btn">Summarize</button>
+      </div>
+      <div class="result" id="summaryResult"></div>
+    </section>
+
+    <!-- RESEARCH -->
+    <section class="panel" id="panel-research" data-panel="research">
+      <div class="pane-intro">
+        <h2>Research</h2>
+        <p>ARIA drafts a structured deep-dive from its own knowledge. Add a Brave Search API key in Settings to ground it with live web results.</p>
+      </div>
+      <form class="composer" id="researchForm">
+        <textarea id="researchInput" placeholder="Research topic or question…" rows="1"></textarea>
+        <button type="submit" class="send-btn">Investigate</button>
+      </form>
+      <div class="result" id="researchResult"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Settings drawer -->
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>Settings</h3>
+    <button id="closeSettings" class="icon-btn">✕</button>
+  </div>
+
+  <label class="field">
+    <span>Anthropic API key</span>
+    <input type="password" id="apiKey" placeholder="sk-ant-...">
+  </label>
+  <p class="hint">Stored only in this browser's local storage. Sent directly from your browser to Anthropic's API — never to any third-party server.</p>
+
+  <label class="field">
+    <span>Model</span>
+    <select id="modelSelect">
+      <option value="claude-sonnet-5">Claude Sonnet 5</option>
+      <option value="claude-opus-4-8">Claude Opus 4.8</option>
+      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+    </select>
+  </label>
+
+  <label class="field">
+    <span>Brave Search API key <span class="optional">(optional — enables live research)</span></span>
+    <input type="password" id="braveKey" placeholder="BSA...">
+  </label>
+  <p class="hint">Get a free key at api.search.brave.com. Without it, Research mode uses ARIA's own knowledge only.</p>
+
+  <button id="saveSettings" class="send-btn full">Save</button>
+  <p class="hint" id="saveConfirm"></p>
+</aside>
+
+<script src="app.js"></script>
+</body>
+      </html>
+      
