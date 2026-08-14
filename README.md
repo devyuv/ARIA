@@ -11,15 +11,17 @@ A Jarvis-style single-page assistant: Chat, Image generation, Digest (summaries)
 
 ## 1. Get an API key
 
-You need your own Anthropic API key:
-1. Go to https://console.anthropic.com
-2. Create an account and generate an API key (starts with `sk-ant-`)
-3. Anthropic API usage is billed per token — check current pricing in the console
+You need a free Google Gemini API key:
+1. Go to https://aistudio.google.com/apikey
+2. Sign in with a Google account and click **Create API key** — no credit card required
+3. Copy the key (starts with `AIza`)
+
+The free tier has daily/per-minute request limits that vary by model — `gemini-2.5-flash` is a solid free default; `gemini-2.5-flash-lite` is faster with a higher quota; `gemini-2.5-pro` is stronger but has a much smaller free daily quota. You can change the model in Settings.
 
 Optional, for live web-grounded research: get a free key at https://api.search.brave.com.
 
-**Important:** this app calls the Anthropic API directly from your browser using your key. That means:
-- Your key is stored only in your browser's local storage, never sent anywhere but Anthropic's API
+**Important:** this app calls the Gemini API directly from your browser using your key. That means:
+- Your key is stored only in your browser's local storage, never sent anywhere but Google's API
 - Anyone with access to your browser/device could read it from local storage
 - Don't publish a version of this site with your key baked into the code — always enter it live in Settings on your own device
 
@@ -68,7 +70,7 @@ README.md    — this file
 
 ## Customizing
 
-- Swap the model in Settings → Model (Sonnet 5 / Opus 4.8 / Haiku 4.5)
+- Swap the model in Settings → Model (e.g. `gemini-2.5-flash`, `gemini-2.5-flash-lite`, `gemini-2.5-pro`)
 - Colors and type are defined as CSS variables at the top of `style.css`
 - Chat system prompt, summary instructions, and research prompt are editable in `app.js`
 - 
