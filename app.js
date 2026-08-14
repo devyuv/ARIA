@@ -98,30 +98,37 @@ document.querySelectorAll("textarea").forEach(ta => {
   ta.addEventListener("input", () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; });
 });
 
-/* ---------------- Anthropic API call ---------------- */
+/* ---------------- Gemini API call ---------------- */
+// messages: array of { role: "user" | "assistant", content: string }
 async function callClaude(messages, system) {
-  if (!state.apiKey) throw new Error("No API key set. Open Settings and add your Anthropic API key.");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": state.apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: state.model,
-      max_tokens: 2000,
-      system: system || undefined,
-      messages
-    })
-  });
+  if (!state.apiKey) throw new Error("No API key set. Open Settings and add your free Gemini API key.");
+  const model = state.model || "gemini-2.5-flash";
+  const contents = messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }]
+  }));
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(state.apiKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: system ? { parts: [{ text: system }] } : undefined
+      })
+    }
+  );
   if (!res.ok) {
     const errBody = await res.text();
     throw new Error(`API error ${res.status}: ${errBody.slice(0, 300)}`);
   }
   const data = await res.json();
-  return (data.content || []).map(b => b.text || "").join("\n").trim();
+  const candidate = data.candidates?.[0];
+  if (!candidate) {
+    const reason = data.promptFeedback?.blockReason;
+    throw new Error(reason ? `Blocked: ${reason}` : "No response from model.");
+  }
+  return (candidate.content?.parts || []).map(p => p.text || "").join("\n").trim();
 }
 
 function escapeHtml(str) {
@@ -267,4 +274,3 @@ document.getElementById("researchForm").addEventListener("submit", async e => {
   } finally { setStatus(false); }
   input.value = "";
 });
-      
