@@ -6,7 +6,7 @@ const store = {
 
 const state = {
   apiKey: store.get("aria_api_key"),
-  model: store.get("aria_model", "claude-sonnet-5"),
+  model: store.get("aria_model", "gemini-2.5-flash"),
   braveKey: store.get("aria_brave_key"),
   chatHistory: []
 };
