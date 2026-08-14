@@ -67,7 +67,7 @@
       <div class="log" id="chatLog">
         <div class="msg system">
           <div class="msg-role">ARIA</div>
-          <div class="msg-body">Systems online. Add your Anthropic API key in Settings to begin, then talk to me about anything.</div>
+          <div class="msg-body">Systems online. Add your free Google Gemini API key in Settings to begin, then talk to me about anything.</div>
         </div>
       </div>
       <form class="composer" id="chatForm">
@@ -131,19 +131,16 @@
   </div>
 
   <label class="field">
-    <span>Anthropic API key</span>
-    <input type="password" id="apiKey" placeholder="sk-ant-...">
+    <span>Google Gemini API key</span>
+    <input type="password" id="apiKey" placeholder="AIza...">
   </label>
-  <p class="hint">Stored only in this browser's local storage. Sent directly from your browser to Anthropic's API — never to any third-party server.</p>
+  <p class="hint">Free from Google AI Studio (no credit card needed). Stored only in this browser's local storage. Sent directly from your browser to Google's API — never to any third-party server.</p>
 
   <label class="field">
     <span>Model</span>
-    <select id="modelSelect">
-      <option value="claude-sonnet-5">Claude Sonnet 5</option>
-      <option value="claude-opus-4-8">Claude Opus 4.8</option>
-      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
-    </select>
+    <input type="text" id="modelSelect" value="gemini-2.5-flash" placeholder="gemini-2.5-flash">
   </label>
+  <p class="hint">Free-tier model name. <code>gemini-2.5-flash</code> is a good default — <code>gemini-2.5-flash-lite</code> is faster/cheaper, <code>gemini-2.5-pro</code> is stronger but has a much smaller free daily quota. Get a key at aistudio.google.com.</p>
 
   <label class="field">
     <span>Brave Search API key <span class="optional">(optional — enables live research)</span></span>
@@ -157,5 +154,4 @@
 
 <script src="app.js"></script>
 </body>
-      </html>
-      
+</html>
