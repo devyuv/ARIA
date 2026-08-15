@@ -11,6 +11,57 @@ const state = {
   chatHistory: []
 };
 
+/* ---------------- Sound engine (synthesized — no audio files needed) ---------------- */
+const SFX = (() => {
+  let actx = null;
+  let muted = store.get("aria_muted", "0") === "1";
+
+  function ctx() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+
+  function tone({ freq = 440, dur = 0.12, type = "sine", peak = 0.12, glideTo = null, delay = 0 }) {
+    if (muted) return;
+    try {
+      const c = ctx();
+      const t0 = c.currentTime + delay;
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t0);
+      if (glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(peak, t0 + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.03);
+    } catch (e) { /* audio unavailable — fail silently */ }
+  }
+
+  return {
+    click() { tone({ freq: 780, dur: 0.045, type: "sine", peak: 0.05 }); },
+    send() { tone({ freq: 420, dur: 0.09, type: "sine", peak: 0.08, glideTo: 760 }); },
+    receive() {
+      tone({ freq: 660, dur: 0.1, type: "sine", peak: 0.07 });
+      tone({ freq: 880, dur: 0.13, type: "sine", peak: 0.06, delay: 0.06 });
+    },
+    chime() {
+      tone({ freq: 660, dur: 0.12, type: "sine", peak: 0.06 });
+      tone({ freq: 990, dur: 0.16, type: "sine", peak: 0.055, delay: 0.07 });
+      tone({ freq: 1320, dur: 0.2, type: "sine", peak: 0.045, delay: 0.14 });
+    },
+    error() { tone({ freq: 240, dur: 0.24, type: "sawtooth", peak: 0.06, glideTo: 110 }); },
+    open() { tone({ freq: 340, dur: 0.09, type: "sine", peak: 0.06, glideTo: 580 }); },
+    close() { tone({ freq: 560, dur: 0.09, type: "sine", peak: 0.05, glideTo: 300 }); },
+    toggle() { tone({ freq: 520, dur: 0.07, type: "triangle", peak: 0.07 }); },
+    setMuted(v) { muted = v; store.set("aria_muted", v ? "1" : "0"); },
+    isMuted() { return muted; }
+  };
+})();
+
 /* ---------------- Core canvas (signature HUD element) ---------------- */
 const canvas = document.getElementById("coreCanvas");
 const ctx = canvas.getContext("2d");
@@ -57,6 +108,7 @@ function setStatus(active) {
 const modeTitles = { chat: "Chat", image: "Imaging", summary: "Digest", research: "Research" };
 document.querySelectorAll(".mode-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    SFX.click();
     document.querySelectorAll(".mode-btn").forEach(b => { b.classList.remove("active"); b.setAttribute("aria-selected", "false"); });
     btn.classList.add("active"); btn.setAttribute("aria-selected", "true");
     const mode = btn.dataset.mode;
@@ -70,17 +122,29 @@ document.querySelectorAll(".mode-btn").forEach(btn => {
 const drawer = document.getElementById("drawer");
 const overlay = document.getElementById("overlay");
 function openDrawer() {
+  SFX.open();
   document.getElementById("apiKey").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
   document.getElementById("braveKey").value = state.braveKey;
   drawer.classList.add("open"); overlay.classList.add("open");
 }
-function closeDrawer() { drawer.classList.remove("open"); overlay.classList.remove("open"); }
+function closeDrawer() { SFX.close(); drawer.classList.remove("open"); overlay.classList.remove("open"); }
 document.getElementById("openSettings").addEventListener("click", openDrawer);
 document.getElementById("closeSettings").addEventListener("click", closeDrawer);
 overlay.addEventListener("click", closeDrawer);
 
+const muteBtn = document.getElementById("muteBtn");
+function updateMuteIcon() { muteBtn.textContent = SFX.isMuted() ? "🔇" : "🔊"; }
+updateMuteIcon();
+muteBtn.addEventListener("click", () => {
+  const newMuted = !SFX.isMuted();
+  SFX.setMuted(newMuted);
+  updateMuteIcon();
+  if (!newMuted) SFX.toggle();
+});
+
 document.getElementById("saveSettings").addEventListener("click", () => {
+  SFX.chime();
   state.apiKey = document.getElementById("apiKey").value.trim();
   state.model = document.getElementById("modelSelect").value;
   state.braveKey = document.getElementById("braveKey").value.trim();
@@ -159,6 +223,7 @@ document.getElementById("chatForm").addEventListener("submit", async e => {
   if (!text) return;
   input.value = ""; input.style.height = "auto";
   appendMsg("user", text);
+  SFX.send();
   state.chatHistory.push({ role: "user", content: text });
   const placeholder = appendMsg("system", "Thinking…");
   setStatus(true);
@@ -166,9 +231,11 @@ document.getElementById("chatForm").addEventListener("submit", async e => {
     const reply = await callClaude(state.chatHistory, "You are ARIA, a sharp, concise personal AI assistant. Keep replies natural and to the point.");
     placeholder.querySelector(".msg-body").innerHTML = mdLite(reply);
     state.chatHistory.push({ role: "assistant", content: reply });
+    SFX.receive();
   } catch (err) {
     placeholder.querySelector(".msg-body").classList.add("error");
     placeholder.querySelector(".msg-body").textContent = err.message;
+    SFX.error();
   } finally { setStatus(false); }
 });
 
@@ -184,6 +251,7 @@ document.getElementById("imageForm").addEventListener("submit", e => {
   card.textContent = "RENDERING…";
   grid.prepend(card);
   setStatus(true);
+  SFX.send();
 
   const seed = Math.floor(Math.random() * 1e9);
   const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&seed=${seed}&nologo=true`;
@@ -193,12 +261,14 @@ document.getElementById("imageForm").addEventListener("submit", e => {
     card.textContent = "";
     card.innerHTML = `<img src="${url}" alt="${escapeHtml(prompt)}"><div class="cap">${escapeHtml(prompt)}</div>`;
     setStatus(false);
+    SFX.chime();
   };
   img.onerror = () => {
     card.classList.remove("loading");
     card.textContent = "";
     card.innerHTML = `<div class="cap" style="color:var(--danger)">Render failed — try again.</div>`;
     setStatus(false);
+    SFX.error();
   };
   img.src = url;
   input.value = "";
@@ -217,14 +287,17 @@ document.getElementById("summaryBtn").addEventListener("click", async () => {
   };
   resultEl.textContent = "Analyzing…";
   setStatus(true);
+  SFX.send();
   try {
     const reply = await callClaude(
       [{ role: "user", content: text }],
       `You are ARIA's digest engine. Summarize the user's text. ${instructions[length]} Use markdown-style ## headers and **bold** sparingly where useful.`
     );
     resultEl.innerHTML = mdLite(reply);
+    SFX.receive();
   } catch (err) {
     resultEl.textContent = err.message;
+    SFX.error();
   } finally { setStatus(false); }
 });
 
@@ -246,6 +319,7 @@ document.getElementById("researchForm").addEventListener("submit", async e => {
   const resultEl = document.getElementById("researchResult");
   resultEl.textContent = "Investigating…";
   setStatus(true);
+  SFX.send();
 
   let context = "";
   let sourceNote = "";
@@ -269,8 +343,10 @@ document.getElementById("researchForm").addEventListener("submit", async e => {
       "You are ARIA's research engine. Produce a thorough, structured report with ## section headers, key facts, and a brief closing synthesis."
     );
     resultEl.innerHTML = `<div class="cap" style="color:var(--muted); font-family:var(--mono); font-size:11px; margin-bottom:14px;">${sourceNote}</div>` + mdLite(reply);
+    SFX.receive();
   } catch (err) {
     resultEl.textContent = err.message;
+    SFX.error();
   } finally { setStatus(false); }
   input.value = "";
 });
