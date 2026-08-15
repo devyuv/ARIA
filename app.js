@@ -7,6 +7,7 @@ const store = {
 const state = {
   apiKey: store.get("aria_api_key"),
   model: store.get("aria_model", "gemini-flash-latest"),
+  imageModel: store.get("aria_image_model", "gemini-3.1-flash-image"),
   braveKey: store.get("aria_brave_key"),
   chatHistory: []
 };
@@ -125,6 +126,7 @@ function openDrawer() {
   SFX.open();
   document.getElementById("apiKey").value = state.apiKey;
   document.getElementById("modelSelect").value = state.model;
+  document.getElementById("imageModelSelect").value = state.imageModel;
   document.getElementById("braveKey").value = state.braveKey;
   drawer.classList.add("open"); overlay.classList.add("open");
 }
@@ -147,9 +149,11 @@ document.getElementById("saveSettings").addEventListener("click", () => {
   SFX.chime();
   state.apiKey = document.getElementById("apiKey").value.trim();
   state.model = document.getElementById("modelSelect").value;
+  state.imageModel = document.getElementById("imageModelSelect").value.trim() || "gemini-3.1-flash-image";
   state.braveKey = document.getElementById("braveKey").value.trim();
   store.set("aria_api_key", state.apiKey);
   store.set("aria_model", state.model);
+  store.set("aria_image_model", state.imageModel);
   store.set("aria_brave_key", state.braveKey);
   const c = document.getElementById("saveConfirm");
   c.textContent = "Saved.";
@@ -239,8 +243,36 @@ document.getElementById("chatForm").addEventListener("submit", async e => {
   } finally { setStatus(false); }
 });
 
-/* ---------------- Imaging (Pollinations, no key required) ---------------- */
-document.getElementById("imageForm").addEventListener("submit", e => {
+/* ---------------- Imaging (Google Gemini "Nano Banana" image models) ---------------- */
+async function callGeminiImage(prompt) {
+  if (!state.apiKey) throw new Error("No API key set. Open Settings and add your free Gemini API key.");
+  const model = state.imageModel || "gemini-3.1-flash-image";
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(state.apiKey)}`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["IMAGE"] }
+      })
+    }
+  );
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`API error ${res.status}: ${errBody.slice(0, 300)}`);
+  }
+  const data = await res.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const imgPart = parts.find(p => p.inlineData);
+  if (!imgPart) {
+    const reason = data.promptFeedback?.blockReason;
+    throw new Error(reason ? `Blocked: ${reason}` : "No image returned — try rephrasing the prompt.");
+  }
+  return `data:${imgPart.inlineData.mimeType};base64,${imgPart.inlineData.data}`;
+}
+
+document.getElementById("imageForm").addEventListener("submit", async e => {
   e.preventDefault();
   const input = document.getElementById("imageInput");
   const prompt = input.value.trim();
@@ -252,26 +284,20 @@ document.getElementById("imageForm").addEventListener("submit", e => {
   grid.prepend(card);
   setStatus(true);
   SFX.send();
-
-  const seed = Math.floor(Math.random() * 1e9);
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=768&height=768&seed=${seed}&nologo=true`;
-  const img = new Image();
-  img.onload = () => {
-    card.classList.remove("loading");
-    card.textContent = "";
-    card.innerHTML = `<img src="${url}" alt="${escapeHtml(prompt)}"><div class="cap">${escapeHtml(prompt)}</div>`;
-    setStatus(false);
-    SFX.chime();
-  };
-  img.onerror = () => {
-    card.classList.remove("loading");
-    card.textContent = "";
-    card.innerHTML = `<div class="cap" style="color:var(--danger)">Render failed — try again.</div>`;
-    setStatus(false);
-    SFX.error();
-  };
-  img.src = url;
   input.value = "";
+
+  try {
+    const dataUrl = await callGeminiImage(prompt);
+    card.classList.remove("loading");
+    card.textContent = "";
+    card.innerHTML = `<img src="${dataUrl}" alt="${escapeHtml(prompt)}"><div class="cap">${escapeHtml(prompt)}</div>`;
+    SFX.chime();
+  } catch (err) {
+    card.classList.remove("loading");
+    card.textContent = "";
+    card.innerHTML = `<div class="cap" style="color:var(--danger)">${escapeHtml(err.message)}</div>`;
+    SFX.error();
+  } finally { setStatus(false); }
 });
 
 /* ---------------- Digest / Summary ---------------- */
@@ -350,3 +376,4 @@ document.getElementById("researchForm").addEventListener("submit", async e => {
   } finally { setStatus(false); }
   input.value = "";
 });
+        
