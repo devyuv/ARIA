@@ -6,7 +6,7 @@ const store = {
 
 const state = {
   apiKey: store.get("aria_api_key"),
-  model: store.get("aria_model", "gemini-3.5-flash"),
+  model: store.get("aria_model", "gemini-flash-latest"),
   braveKey: store.get("aria_brave_key"),
   chatHistory: []
 };
@@ -102,7 +102,7 @@ document.querySelectorAll("textarea").forEach(ta => {
 // messages: array of { role: "user" | "assistant", content: string }
 async function callClaude(messages, system) {
   if (!state.apiKey) throw new Error("No API key set. Open Settings and add your free Gemini API key.");
-  const model = state.model || "gemini-2.5-flash";
+  const model = state.model || "gemini-flash-latest";
   const contents = messages.map(m => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }]
