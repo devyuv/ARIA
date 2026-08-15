@@ -54,6 +54,7 @@
   <!-- Main -->
   <main class="main">
     <header class="topbar">
+      <div class="topbar-brand">ARIA</div>
       <div class="status-block">
         <span class="status-dot" id="statusDot"></span>
         <span class="status-text" id="statusText">STANDBY</span>
@@ -138,9 +139,9 @@
 
   <label class="field">
     <span>Model</span>
-    <input type="text" id="modelSelect" value="gemini-2.5-flash" placeholder="gemini-2.5-flash">
+    <input type="text" id="modelSelect" value="gemini-flash-latest" placeholder="gemini-flash-latest">
   </label>
-  <p class="hint">Free-tier model name. <code>gemini-2.5-flash</code> is a good default — <code>gemini-2.5-flash-lite</code> is faster/cheaper, <code>gemini-2.5-pro</code> is stronger but has a much smaller free daily quota. Get a key at aistudio.google.com.</p>
+  <p class="hint"><code>gemini-flash-latest</code> always points to Google's current free Flash model, so it keeps working even after Google renames or retires versions. For a pinned, more stable version try <code>gemini-3.5-flash</code>. Get a key at aistudio.google.com.</p>
 
   <label class="field">
     <span>Brave Search API key <span class="optional">(optional — enables live research)</span></span>
