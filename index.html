@@ -82,7 +82,7 @@
     <section class="panel" id="panel-image" data-panel="image">
       <div class="pane-intro">
         <h2>Imaging</h2>
-        <p>Describe an image. Generation runs through a free open image endpoint — no key required.</p>
+        <p>Describe an image. Generated with Google's Nano Banana image model — uses the same Gemini key as Chat.</p>
       </div>
       <form class="composer" id="imageForm">
         <textarea id="imageInput" placeholder="A chrome falcon over a neon city, cinematic…" rows="1"></textarea>
@@ -143,6 +143,12 @@
     <input type="text" id="modelSelect" value="gemini-flash-latest" placeholder="gemini-flash-latest">
   </label>
   <p class="hint"><code>gemini-flash-latest</code> always points to Google's current free Flash model, so it keeps working even after Google renames or retires versions. For a pinned, more stable version try <code>gemini-3.5-flash</code>. Get a key at aistudio.google.com.</p>
+
+  <label class="field">
+    <span>Image model</span>
+    <input type="text" id="imageModelSelect" value="gemini-3.1-flash-image" placeholder="gemini-3.1-flash-image">
+  </label>
+  <p class="hint">Used by Imaging mode (Google's "Nano Banana" image models), same API key as above. <code>gemini-3.1-flash-lite-image</code> is faster and cheaper if you hit rate limits.</p>
 
   <label class="field">
     <span>Brave Search API key <span class="optional">(optional — enables live research)</span></span>
